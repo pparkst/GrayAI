@@ -1,0 +1,13 @@
+package dev.ppakst.grayAI;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class GrayAiApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(GrayAiApplication.class, args);
+	}
+
+}
