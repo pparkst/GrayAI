@@ -1,6 +1,7 @@
 package dev.ppakst.grayAI.mapper;
 
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 import dev.ppakst.grayAI.domain.Message;
 import dev.ppakst.grayAI.dto.MessageDTO;
@@ -8,7 +9,8 @@ import dev.ppakst.grayAI.repository.MessageRepository;
 
 @Mapper(componentModel = "spring", uses = {MessageRepository.class})
 public interface MessageMapper {
-    
+
+    @Mapping(source = "id", target = "no")
     MessageDTO.Response toResponse(Message message);
 
     default Message toEntity(MessageDTO.Request messageRequest) {

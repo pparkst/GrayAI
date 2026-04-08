@@ -1,6 +1,7 @@
 package dev.ppakst.grayAI.service;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,7 @@ public class MessageService {
     {
         Message message = messageMapper.toEntity(messageRequest);
 
+        System.out.println(message.toString());
         message = messageRepository.save(message);
 
         return message.getId();
@@ -35,4 +37,12 @@ public class MessageService {
 
         return messageList.stream().map(messageMapper::toResponse).toList();
     }
+
+    @Transactional(readOnly = true)
+    public MessageDTO.Response getMessageByNo(Long messageNo)
+    {
+        Message message = messageRepository.findById(messageNo).orElseThrow(() -> new NoSuchElementException("대상이 없습니다."));
+        return messageMapper.toResponse(message);
+    }
+
 }
