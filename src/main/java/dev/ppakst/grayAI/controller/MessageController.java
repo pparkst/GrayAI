@@ -52,7 +52,7 @@ public class MessageController {
     {
         String question = MessageUtil.makeQuestionByTitleAndDescription(messageRequest);
 
-        return geminiService.getStreamingAnswer(question)
+        return geminiService.getStreamingAnswer(messageRequest.getUserName(), question)
                 .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic());
                 //가상 스레드에서 I/O 대기 효율적인 스케줄러
     }
