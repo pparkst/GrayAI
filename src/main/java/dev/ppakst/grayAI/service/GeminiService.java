@@ -34,9 +34,17 @@ public class GeminiService {
     public Flux<String> getStreamingAnswer(String userName, String message)
     {
         String cacheKey = String.format("grayAi:cache:%s", userName);
+
+        System.out.println(cacheKey);
         Prompt prompt = null;
         try{
-            List<String> history = redisTemplate.opsForList().range(cacheKey, -10, -1);
+            long redis_start = System.currentTimeMillis();
+            System.out.println("redis 캐시 조회 요청");
+            List<String> history = redisTemplate.opsForList().range(cacheKey, -6, -1);
+
+            System.out.println("history size : " + history.size());
+            history.forEach((his) -> System.out.println(his));
+            System.out.println(String.format("redis 캐시 조회 완료 - %ss", (System.currentTimeMillis() - redis_start) / 1000.0));
 
             List<Message> messages = new ArrayList<>();
             for (String entry : history) {
@@ -51,21 +59,12 @@ public class GeminiService {
 
             prompt = new Prompt(messages);
 
-            // String cachedAnswer = redisTemplate.opsForValue().get(cacheKey);
-    
-            // if(cachedAnswer != null)
-            // {
-            //     System.out.println("Redis 가져옴");
-            //     return Flux.just(cachedAnswer);
-            // }
         }catch(RedisConnectionFailureException | RedisConnectionException e)
         {
             System.err.println("Redis 연결 실패 001");
-            return callGeminiApiAndSaveCache(cacheKey, message, prompt);
         }catch(Exception e)
         { 
             System.err.println("Redis 오류 발생 001");
-            return callGeminiApiAndSaveCache(cacheKey, message, prompt);
         }
 
         return callGeminiApiAndSaveCache(cacheKey, message, prompt);
@@ -92,17 +91,20 @@ public class GeminiService {
     private Flux<String> callGeminiApiAndSaveCache(String cacheKey, String message, Prompt prompt)
     {
         StringBuilder fullAnswer = new StringBuilder();
-
+        long geminiCall_start = System.currentTimeMillis();
+        System.out.println("GEMINI CALL 요청");
         if(prompt != null) {
             return chatClient.prompt(prompt)
                 .stream() //스트리밍 활성화
                 .content() //내용만 추출하여 Flux로 변환
                 .doOnNext(fullAnswer::append)
                 .doOnComplete(() -> {
+                    System.out.println(String.format("GEMINI CALL 완료 - %ss", (System.currentTimeMillis() - geminiCall_start) / 1000.0));
                     CompletableFuture.runAsync(() -> {
                             try {
                                 redisTemplate.opsForList().rightPush(cacheKey, "User: " + message);
                                 redisTemplate.opsForList().rightPush(cacheKey, "Assistant: " + fullAnswer.toString());
+                                redisTemplate.opsForList().trim(cacheKey, -10, -1);
                                 redisTemplate.expire(cacheKey, Duration.ofMinutes(30));
                                 System.out.println("Redis 백그라운드 저장 완료");
                             }catch (Exception e) {
@@ -120,6 +122,7 @@ public class GeminiService {
                 .content() //내용만 추출하여 Flux로 변환
                 .doOnNext(fullAnswer::append)
                 .doOnComplete(() -> {
+                    System.out.println(String.format("GEMINI CALL 완료 - %s", System.currentTimeMillis()));
                     CompletableFuture.runAsync(() -> {
                             try {
                                 redisTemplate.opsForList().rightPush(cacheKey, "User: " + message);
